@@ -71,10 +71,11 @@ class Evaluator:
 
         score_batches = []
         for candidate_batch in self.candidate_batches:
+            #print("BATCH: ",len(candidate_batch[0]))
             scores = self.model(self.query_embed(self.query_ids[query_ix]), candidate_batch)
             score_batches.append(scores)
         #scores = self.model(self.query_embed(self.query_ids[query_ix]), self.candidates)
-        score_batches.append(scores)
+        #score_batches.append(scores)
 
         scores = torch.cat(score_batches, 1).squeeze(0)
         scores = scores.data
@@ -102,6 +103,7 @@ class Evaluator:
 
         """
         scores = self._get_candidate_scores(query_ix)
+        #print("SCORES: ",len(scores))
         top_candidates = scores.argsort()[-1:-(n+1):-1]
         return top_candidates
 

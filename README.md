@@ -81,5 +81,14 @@ Evaluate predictions on the test set using scoring script of SemEval-2018 Task 9
 python2.7 path/to/SemEval-Task9/task9-scorer.py path/to/SemEval-Task9/test/gold/<subtask>.<language>.test.gold.txt path/to/output/pred.txt
 ```
 
+Prepare data for domain specific predictions (change between domain specific vocab and general vocab for different search spaces):
+```bash
+    python3 prep_term_data.py [path-vocab path-queries path-embeddings path-output]
+```
+
+Make domain specific predictions:
+```bash
+    python3 predic_terms.py [path-model path-pickle path-output]
+```
 
  
