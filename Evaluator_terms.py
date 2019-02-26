@@ -10,7 +10,7 @@ class Evaluator:
     NB_PRED = 15
     BATCH_NB_CANDIDATES = 5000
 
-    def __init__(self, model, query_embed, query_cand_ids):
+    def __init__(self, model, query_embed, query_cand_ids, candidates):
         """
         Args:
         - model: model
@@ -20,6 +20,7 @@ class Evaluator:
           as the query embeddings.
 
         """
+        model.projector.cand_embed = candidates
 
         self.model = model
         self.query_embed = query_embed
@@ -32,7 +33,8 @@ class Evaluator:
 
         # Create list of torch Variables containing a batch of
         # candidates, shape (1,BATCH_NB_CANDIDATES).
-        self.nb_candidates = self.model.get_nb_candidates()
+        self.nb_candidates = candidates.weight.shape[0]
+        print("NUM CANDIDATES: ",self.nb_candidates)
         self.candidate_batches = []
         nb_batches = self.nb_candidates // self.BATCH_NB_CANDIDATES
         if self.nb_candidates % self.BATCH_NB_CANDIDATES:
@@ -71,6 +73,9 @@ class Evaluator:
         for candidate_batch in self.candidate_batches:
             scores = self.model(self.query_embed(self.query_ids[query_ix]), candidate_batch)
             score_batches.append(scores)
+        #scores = self.model(self.query_embed(self.query_ids[query_ix]), self.candidates)
+        score_batches.append(scores)
+
         scores = torch.cat(score_batches, 1).squeeze(0)
         scores = scores.data
         if self.model.use_cuda:
@@ -143,6 +148,6 @@ class Evaluator:
         with codecs.open(path, "w", encoding="utf-8") as f:
             for q_ix in range(self.nb_queries):
                 pred_ids = self._get_top_candidates(q_ix, self.NB_PRED)
-            
+
                 pred_strings = [denormalize_term(candidates[p]) for p in pred_ids]
                 f.write("\t".join(pred_strings) + "\n")

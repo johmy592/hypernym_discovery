@@ -24,7 +24,7 @@ def make_sampler(things):
             random.shuffle(shuffled_things)
         yield shuffled_things[i]
 
-def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids, 
+def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
                 train_pairs, dev_pairs, hparams, log_path, seed):
     """Train model using negative sampling.
 
@@ -84,9 +84,9 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
     batch_q = np.zeros(batch_size, 'int64')
     batch_h_pos = np.zeros((batch_size,1), 'int64')
     batch_h_neg = np.zeros((batch_size,nb_neg_samples), 'int64')
-    t_pos_var = wrap_in_var(torch.ones((batch_size,1)), 
+    t_pos_var = wrap_in_var(torch.ones((batch_size,1)),
                             False, model.use_cuda)
-    t_neg_var = wrap_in_var(torch.zeros((batch_size,nb_neg_samples)), 
+    t_neg_var = wrap_in_var(torch.zeros((batch_size,nb_neg_samples)),
                             False, model.use_cuda)
 
     # Prepare list of sets of gold hypernym IDs for queries in
@@ -115,9 +115,9 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
     if model.use_cuda:
         dev_q_ids = dev_q_ids.cuda()
     dev_q_var = dev_q_embed(dev_q_ids)
-    dev_h_var = wrap_in_var(torch.LongTensor(dev_pairs[:,1]).unsqueeze(1), 
+    dev_h_var = wrap_in_var(torch.LongTensor(dev_pairs[:,1]).unsqueeze(1),
                             False, model.use_cuda)
-    dev_t_var = wrap_in_var(torch.ones((nb_dev_pairs,1)), 
+    dev_t_var = wrap_in_var(torch.ones((nb_dev_pairs,1)),
                             False, model.use_cuda)
 
     # Make Evaluator to compute MAP on dev set
@@ -127,7 +127,7 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
     MAP = dev_eval.get_MAP(dev_gold_ids)
     print("MAP: {:.4f}".format(MAP))
 
-    checkpoint_header = ["Epoch", "Updates", "PosLoss", "NegLoss", 
+    checkpoint_header = ["Epoch", "Updates", "PosLoss", "NegLoss",
                          "DevLoss", "DevMAP", "TimeElapsed"]
     with open(log_path, "w") as f:
         f.write("\t".join(checkpoint_header) + "\n")
@@ -168,12 +168,12 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
             # Update on batch
             batch_row_id = (batch_row_id + 1) % batch_size
             if batch_row_id + 1 == batch_size:
-                q_ids = wrap_in_var(torch.LongTensor(batch_q), 
+                q_ids = wrap_in_var(torch.LongTensor(batch_q),
                                     False, model.use_cuda)
                 q_var = train_q_embed(q_ids)
-                h_pos_var = wrap_in_var(torch.LongTensor(batch_h_pos), 
+                h_pos_var = wrap_in_var(torch.LongTensor(batch_h_pos),
                                         False, model.use_cuda)
-                h_neg_var = wrap_in_var(torch.LongTensor(batch_h_neg), 
+                h_neg_var = wrap_in_var(torch.LongTensor(batch_h_neg),
                                         False, model.use_cuda)
                 optim.zero_grad()
                 pos_loss = model.get_loss(q_var, h_pos_var, t_pos_var)
@@ -184,8 +184,8 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
                     torch.nn.utils.clip_grad_norm(train_q_embed.parameters(), clip)
                     torch.nn.utils.clip_grad_norm(model.parameters(), clip)
                 optim.step()
-                total_pos_loss += pos_loss.data[0]
-                total_neg_loss += neg_loss.data[0]
+                total_pos_loss += pos_loss.data.item()
+                total_neg_loss += neg_loss.data.item()
                 nb_updates += 1
 
         # Check progress
@@ -195,7 +195,7 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
         # Compute loss and MAP on dev set
         model.eval()
         dev_loss = model.get_loss(dev_q_var, dev_h_var, dev_t_var)
-        avg_dev_loss = dev_loss.data[0] / nb_dev_pairs
+        avg_dev_loss = dev_loss.data.item() / nb_dev_pairs
         MAP = dev_eval.get_MAP(dev_gold_ids)
         checkpoint_data = []
         checkpoint_data.append(str(epoch))
@@ -218,7 +218,7 @@ def train_model(model, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
             nb_no_gain += 1
         if nb_no_gain >= patience:
             print("EARLY STOP!")
-            done = True            
+            done = True
             print("\nEvaluating best model on dev set...")
             dev_eval.set_model(best_model)
             MAP = dev_eval.get_MAP(dev_gold_ids)
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     parser.add_argument("dir_model", help="path of directory in which we write the model")
     parser.add_argument("-n", "--no_gpu", action="store_true")
     parser.add_argument("-s", "--seed", type=int, required=False, help="Seed for RNG")
-    args = parser.parse_args()    
+    args = parser.parse_args()
 
     # Parse hyperparameter settings
     hparams = ConfigFactory.parse_file(args.path_hparams)
@@ -278,17 +278,17 @@ if __name__ == "__main__":
 
     # Make embedders for candidates, train queries, and dev queries. The
     # query embeddings are not tuned.
-    cand_embed = make_embedder(data["candidate_embeds"], grad=True, 
+    cand_embed = make_embedder(data["candidate_embeds"], grad=True,
                                cuda=use_gpu, sparse=False)
-    train_q_embed = make_embedder(data["train_query_embeds"], grad=True, 
+    train_q_embed = make_embedder(data["train_query_embeds"], grad=True,
                                   cuda=use_gpu, sparse=False)
-    dev_q_embed = make_embedder(data["dev_query_embeds"], grad=False, 
+    dev_q_embed = make_embedder(data["dev_query_embeds"], grad=False,
                                 cuda=use_gpu, sparse=False)
 
     # Initialize model
     print("\nInitializing model...")
-    projector = Projector(cand_embed, hparams["nb_maps"], hparams["dropout"], 
-                          hparams["normalize_e"], hparams["normalize_p"], 
+    projector = Projector(cand_embed, hparams["nb_maps"], hparams["dropout"],
+                          hparams["normalize_e"], hparams["normalize_p"],
                           cuda=use_gpu, seed=args.seed)
     classifier = Classifier(projector, cuda=use_gpu, seed=args.seed)
     if use_gpu:
@@ -308,8 +308,8 @@ if __name__ == "__main__":
 
     # Train model
     log_path = "{}/log.txt".format(args.dir_model)
-    
-    model = train_model(classifier, optim, train_q_embed, dev_q_embed, dev_q_cand_ids, 
+
+    model = train_model(classifier, optim, train_q_embed, dev_q_embed, dev_q_cand_ids,
                         train_pairs, dev_pairs, hparams, log_path, args.seed)
     print("\nLog saved ---> {}".format(log_path))
 
@@ -317,4 +317,3 @@ if __name__ == "__main__":
     path = "{}/model.pt".format(args.dir_model)
     print("Saving model ---> {}".format(path))
     torch.save(model, path)
-
