@@ -38,7 +38,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("Loading model <-- {}".format(args.path_model))
-    model = torch.load(args.path_model)
+    #model = torch.load(args.path_model)
+    model = torch.load(args.path_model,map_location='cpu')
     model_vocab_size = model.get_nb_candidates()
     print("Size of model's vocab (nb_candidates): {}".format(model_vocab_size))
 
@@ -48,9 +49,10 @@ if __name__ == "__main__":
     candidates = data["candidates"]
 
     test_q_cand_ids = data["test_query_cand_ids"]
+    #test_q_embed = make_embedder(data["test_query_embeds"], grad=False,
+    #                             cuda=model.use_cuda, sparse=False)
     test_q_embed = make_embedder(data["test_query_embeds"], grad=False,
-                                 cuda=model.use_cuda, sparse=False)
-
+                                  cuda=False, sparse=False)
     #print(candidates[:10])
     #print(data["test_query_embeds"][:3])
     #print("CAND: ",candidate_embeds.weight.shape[0])
@@ -60,8 +62,10 @@ if __name__ == "__main__":
 
     # ADDED STUFF
     candidates_e = data["candidate_embeds"]
+    #candidate_embeds =  make_embedder(candidates_e, grad=False,
+    #                             cuda=model.use_cuda, sparse=False)
     candidate_embeds =  make_embedder(candidates_e, grad=False,
-                                 cuda=model.use_cuda, sparse=False)
+                                 cuda=False, sparse=False)
     #print("ids: ", test_q_cand_ids[:10])
     #print("new ids: ", _re_map_queries(data["test_query_embeds"], candidates_e))
     #***********************
